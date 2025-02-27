@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Scoundrel Customizable</title>
+  <style>
+    @font-face {
+      font-family: "Pixel";
+      src: url('fonts/CyberpunkWaifus.ttf') format('truetype');
+    }
+    body {
+      /* Use the custom Pixel font */
+      font-family: "Pixel", Arial, sans-serif;
+      background: #222;
+      color: #ddd;
+      margin: 0;
+      padding: 0;
+    }
+    /* Options Modal */
+    #optionsModal {
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #optionsModal .modal-content {
+      background: #333;
+      border: 2px solid #444;
+      border-radius: 5px;
+      padding: 20px;
+      color: #ddd;
+      font-size: 16px;
+    }
+    #optionsModal label {
+      display: block;
+      margin-bottom: 10px;
+    }
+    #optionsModal input[type="number"] {
+      width: 60px;
+    }
+    /* Main container with log on left */
+    #container {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+    }
+    #log {
+      width: 250px;
+      height: 600px;
+      overflow-y: auto;
+      background: #444;
+      padding: 0px;
+      color: #fff;
+      font-size: 14px;
+      border: 2px solid #666;
+      border-radius: 5px;
+    }
+    /* Increase spacing between log messages */
+    #log div {
+      margin-bottom: 15px;
+    }
+    #game {
+      flex: 1;
+      background: #333;
+      border: 2px solid #444;
+      border-radius: 5px;
+      padding: 10px;
+      position: relative;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    #status {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 10px;
+    }
+    #status div {
+      padding: 3px 8px;
+      background: #444;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+    #room, #activeSlot, #weaponSlot {
+      border: 1px solid #555;
+      padding: 5px;
+      min-height: 150px;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-weight: bold;
+      margin-bottom: 3px;
+      font-size: 16px;
+    }
+    /* Base card styling for pixel art, zoomed in 20% */
+    .card {
+      width: 100px;
+      height: 150px;
+      background-size: cover;
+      border-radius: 3px;
+      cursor: pointer;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      display: block;
+      transform: scale(1.5);
+      transform-origin: center;
+    }
+    /* Card container with overflow hidden for zoom effect */
+    .card-container {
+      display: inline-block;
+      width: 100px;
+      height: 150px;
+      margin: 3px;
+      position: relative;
+      overflow: hidden;
+    }
+    /* Overlay for hover menus */
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 3%;
+      width: 94%;
+      height: 100%;
+      background: rgba(95, 78, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+      border-radius: 5px;
+    }
+    .card-container:hover .overlay {
+      opacity: 1;
+    }
+    .overlay button {
+      margin: 2px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    /* Weapon container: weapon image next to slain monsters */
+    #weaponContainer {
+      display: flex;
+      align-items: center;
+    }
+    #weaponArea {
+      margin-right: 5px;
+    }
+    #weaponMonsters {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    /* Slain monsters are same size as normal cards */
+    #weaponMonsters .card {
+      width: 100px;
+      height: 150px;
+      margin: 3px;
+    }
+    #controls {
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    button {
+      font-family: "Pixel", Arial, sans-serif;
+      padding: 6px 10px;
+      margin: 3px;
+      font-size: 14px;
+      cursor: pointer;
+      background-color: #ffffff;
+    }
+    /* Message modal (for fading messages) */
+    #messageModal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 5px;
+      font-size: 18px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1s ease;
+    }
+    /* Death Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.7);
+    }
+    .modal-content {
+      background-color: #333;
+      margin: 20% auto;
+      padding: 10px;
+      border: 1px solid #555;
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+      border-radius: 5px;
+    }
+    /* Volume slider at bottom */
+    #volumeControl {
+      text-align: center;
+      margin-top: 10px;
+    }
+    #avoidRoomBtn {
+      background-color: #ff9b9b;
+    }
+    #logHeader {
+      position: sticky;
+      top: 0;
+      background: #444;
+      padding: 5px;
+      z-index: 10;
+      border: 2px solid #666;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Options Modal -->
+  <div id="optionsModal">
+    <div class="modal-content">
+      <h2>Game Options</h2>
+      <label>Total Cards in Deck: <input type="number" id="totalCardsInput" value="52" min="1"></label>
+      <label>Max Health: <input type="number" id="maxHealthInput" value="20" min="1"></label>
+      <label>Cards per Room: <input type="number" id="cardsPerRoomInput" value="4" min="1"></label>
+      <label><input type="checkbox" id="blacksmithToggle" checked> Enable Blacksmith (Red Face Diamonds)</label>
+      <label><input type="checkbox" id="shieldToggle" checked> Enable Shield (Red Face Hearts)</label>
+      <label><input type="checkbox" id="suspiciousPotionToggle" checked> Enable Suspicious Potion (Red Ace Hearts)</label>
+      <label><input type="checkbox" id="warmongerToggle" checked> Enable Warmonger (Red Ace Diamonds)</label>
+      <button id="startGameButton">Start Game</button>
+      <button class="closeOptions" id="closeOptionsButton">Close</button>
+    </div>
+  </div>
+
+  <div id="container">
+    <div id="log">
+      <div id="logHeader">
+        <h3>Log</h3>
+        <div>
+          <button id="optionsButton">Options</button>
+          <button id="avoidRoomBtn">Avoid Room</button>
+        </div>
+      </div>
+    </div>
+    <div id="game">
+      <h1>Scoundrel</h1>
+      <div id="status">
+        <div id="healthDisplay">Health: 20</div>
+        <div id="weaponDisplay">Weapon: None</div>
+        <div id="activeDisplay">Active Card: None</div>
+        <div id="scoreDisplay">Rooms Cleared: 0</div>
+        <div id="discardDisplay">Discard Pile: 0</div>
+      </div>
+      <div id="room">
+        <div class="section-title">Room</div>
+        <div id="roomCards"></div>
+      </div>
+      <div id="weaponSlot">
+        <div class="section-title">Weapon Slot</div>
+        <div id="weaponContainer">
+          <div id="weaponArea"></div>
+          <div id="weaponMonsters"></div>
+        </div>
+      </div>
+      <div id="activeSlot">
+        <div class="section-title">Active Card</div>
+        <div id="activeArea"></div>
+      </div>
+      <div id="message"></div>
+    </div>
+  </div>
+
+  <!-- Message Modal -->
+  <div id="messageModal"></div>
+
+  <!-- Death Modal -->
+  <div id="deathModal" class="modal">
+    <div class="modal-content">
+      <h2>Game Over</h2>
+      <p id="deathMessage"></p>
+      <button id="restartBtn">Restart Game</button>
+    </div>
+  </div>
+
+  <!-- Volume Control -->
+  <div id="volumeControl">
+    Volume: <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1">
+  </div>
+
+  <script>
+    // Global options object
+    let options = {};
+    // New flag to track if the previous turn was avoided
+    let lastTurnAvoided = false;
+    
+    // Options modal functionality
+    document.getElementById("startGameButton").addEventListener("click", function() {
+      options = {
+        totalCards: parseInt(document.getElementById("totalCardsInput").value),
+        maxHealth: parseInt(document.getElementById("maxHealthInput").value),
+        cardsPerRoom: parseInt(document.getElementById("cardsPerRoomInput").value),
+        showBlacksmith: document.getElementById("blacksmithToggle").checked,
+        showShield: document.getElementById("shieldToggle").checked,
+        showSuspiciousPotion: document.getElementById("suspiciousPotionToggle").checked,
+        showWarmonger: document.getElementById("warmongerToggle").checked
+      };
+      document.getElementById("optionsModal").style.display = "none";
+      initGame();
+    });
+    document.getElementById("optionsButton").addEventListener("click", function() {
+      document.getElementById("optionsModal").style.display = "flex";
+    });
+    document.getElementById("closeOptionsButton").addEventListener("click", function() {
+      document.getElementById("optionsModal").style.display = "none";
+    });
+
+    // Global volume variable
+    let volume = 1;
+    document.getElementById("volumeSlider").addEventListener("input", function() {
+      volume = parseFloat(this.value);
+    });
+
+    // Global game state variables
+    let health = 20;
+    let currentWeapon = null; // { card, monsterStack: [monsterCard,...], lastMonsterValue }
+    let activeCard = null; // active card in inventory
+    let room = []; // cards in current room
+    let discardPile = [];
+    let dungeon = [];
+    let avoidedLastTurn = false;
+    let potionUsedThisTurn = false;
+    let turnInProgress = false;
+    let roomsCleared = 0;
+
+    // Append message to log container and auto-scroll
+    function addLog(message) {
+      let logContainer = document.getElementById("log");
+      let newEntry = document.createElement("div");
+      newEntry.innerText = message;
+      logContainer.appendChild(newEntry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    // Play a sound effect; if missing, use "sfx/nosound.wav"
+    function playSound(soundName) {
+      let audio = new Audio("sfx/" + soundName + ".wav");
+      audio.volume = volume;
+      audio.onerror = function() {
+        let errAudio = new Audio("sfx/nosound.wav");
+        errAudio.volume = volume;
+        errAudio.play();
+      };
+      audio.play();
+    }
+
+    // Show message in modal and add to log
+    function showMessage(msg) {
+      let msgModal = document.getElementById("messageModal");
+      msgModal.innerText = msg;
+      msgModal.style.opacity = 1;
+      msgModal.style.display = "block";
+      addLog(msg);
+      playSound("message");
+      setTimeout(() => { msgModal.style.opacity = 0.25; }, 1000);
+      setTimeout(() => { msgModal.style.display = "none"; }, 2000);
+    }
+
+    // Disable avoid room button after any action
+    function disableAvoidRoom() {
+      let avoidBtn = document.getElementById("avoidRoomBtn");
+      avoidBtn.disabled = true;
+      avoidBtn.style.opacity = 0.5;
+    }
+    
+    // Clear the avoid flag when a non-avoid action is taken.
+    function clearAvoidFlag() {
+      lastTurnAvoided = false;
+    }
+
+    // Card constructor
+    function createCard(suit, rank) {
+      let card = { suit, rank, image: "images/" + suit + " " + rank + ".png" };
+      if (suit === "Clubs" || suit === "Spades") {
+        card.type = "monster";
+        if (rank == 1) card.value = 14;
+        else if (rank >= 2 && rank <= 10) card.value = rank;
+        else if (rank == 11) card.value = 11;
+        else if (rank == 12) card.value = 12;
+        else if (rank == 13) card.value = 13;
+      } else if (suit === "Diamonds") {
+        if (rank == 1) {
+          card.type = "active";
+          card.subtype = "healingAce"; // Displayed as Warmonger
+        } else if (rank >= 2 && rank <= 10) {
+          card.type = "weapon";
+          card.value = rank;
+        } else if (rank >= 11 && rank <= 13) {
+          card.type = "active";
+          card.subtype = "blacksmith";
+          card.activeValue = rank === 11 ? 1 : (rank === 12 ? 2 : 3);
+        }
+      } else if (suit === "Hearts") {
+        if (rank == 1) {
+          card.type = "active";
+          card.subtype = "suspiciousPotion";
+        } else if (rank >= 2 && rank <= 10) {
+          card.type = "potion";
+          card.value = rank;
+        } else if (rank >= 11 && rank <= 13) {
+          card.type = "active";
+          card.subtype = "shield";
+          card.activeValue = rank === 11 ? 1 : (rank === 12 ? 2 : 3);
+        }
+      }
+      return card;
+    }
+
+    // Create a deck based on options.totalCards.
+    function createDeck() {
+      let standardDeck = [];
+      const suits = ["Clubs", "Diamonds", "Hearts", "Spades"];
+      for (let suit of suits) {
+        for (let rank = 1; rank <= 13; rank++) {
+          standardDeck.push(createCard(suit, rank));
+        }
+      }
+      let numFullDecks = Math.floor(options.totalCards / 52);
+      let extra = options.totalCards % 52;
+      let deck = [];
+      for (let i = 0; i < numFullDecks; i++) {
+        deck = deck.concat(standardDeck.slice());
+      }
+      if (extra > 0) {
+        let shuffledStandard = shuffle(standardDeck.slice());
+        deck = deck.concat(shuffledStandard.slice(0, extra));
+      }
+      deck = shuffle(deck);
+      // Remove disabled card types AFTER deck creation
+      deck = deck.filter(card => {
+        if (!options.showBlacksmith && card.type === "active" && card.subtype === "blacksmith") return false;
+        if (!options.showShield && card.type === "active" && card.subtype === "shield") return false;
+        if (!options.showSuspiciousPotion && card.type === "active" && card.subtype === "suspiciousPotion") return false;
+        if (!options.showWarmonger && card.type === "active" && card.subtype === "healingAce") return false;
+        return true;
+      });
+      return deck;
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function initGame() {
+      health = options.maxHealth;
+      currentWeapon = null;
+      activeCard = null;
+      room = [];
+      discardPile = [];
+      avoidedLastTurn = false;
+      lastTurnAvoided = false;
+      potionUsedThisTurn = false;
+      turnInProgress = false;
+      roomsCleared = 0;
+      let avoidBtn = document.getElementById("avoidRoomBtn");
+      avoidBtn.disabled = false;
+      avoidBtn.style.opacity = 1;
+      dungeon = createDeck();
+      updateUI();
+      showMessage("Game started. Brace yourself, you pathetic scum.");
+      playSound("start");
+      newTurn();
+    }
+
+    function updateUI() {
+      document.getElementById("healthDisplay").innerText = "Health: " + health;
+      document.getElementById("discardDisplay").innerText = "Discard Pile: " + discardPile.length;
+      document.getElementById("scoreDisplay").innerText = "Rooms Cleared: " + roomsCleared;
+      
+      let weaponArea = document.getElementById("weaponArea");
+      weaponArea.innerHTML = "";
+      if (currentWeapon) {
+        let wImg = document.createElement("img");
+        wImg.src = currentWeapon.card.image;
+        wImg.className = "card";
+        weaponArea.appendChild(wImg);
+        document.getElementById("weaponDisplay").innerText = "Weapon: " + currentWeapon.card.value;
+      } else {
+        document.getElementById("weaponDisplay").innerText = "Weapon: None";
+      }
+      let weaponMonstersDiv = document.getElementById("weaponMonsters");
+      weaponMonstersDiv.innerHTML = "";
+      if (currentWeapon && currentWeapon.monsterStack.length > 0) {
+        currentWeapon.monsterStack.forEach(c => {
+          let mImg = document.createElement("img");
+          mImg.src = c.image;
+          mImg.className = "card";
+          weaponMonstersDiv.appendChild(mImg);
+        });
+      }
+      
+      let activeDiv = document.getElementById("activeArea");
+      activeDiv.innerHTML = "";
+      if (activeCard) {
+        let container = document.createElement("div");
+        container.className = "card-container";
+        let aImg = document.createElement("img");
+        aImg.src = activeCard.image;
+        aImg.className = "card";
+        container.appendChild(aImg);
+        if (activeCard.subtype !== "shield") {
+          let overlay = document.createElement("div");
+          overlay.className = "overlay";
+          let btn = document.createElement("button");
+          btn.innerText = "Use";
+          btn.onclick = () => { disableAvoidRoom(); playSound("activeUse"); useActiveCard(); };
+          overlay.appendChild(btn);
+          container.appendChild(overlay);
+        }
+        activeDiv.appendChild(container);
+        let dispName = (activeCard.subtype === "healingAce") ? "Warmonger" : activeCard.subtype;
+        document.getElementById("activeDisplay").innerText = "Active Card: " + dispName;
+      } else {
+        document.getElementById("activeDisplay").innerText = "Active Card: None";
+      }
+      
+      let roomDiv = document.getElementById("roomCards");
+      roomDiv.innerHTML = "";
+      room.forEach((card, index) => {
+        let container = document.createElement("div");
+        container.className = "card-container";
+        let img = document.createElement("img");
+        img.src = card.image;
+        img.className = "card";
+        container.appendChild(img);
+        let overlay = document.createElement("div");
+        overlay.className = "overlay";
+        if (card.type === "monster") {
+          if (currentWeapon && (!currentWeapon.lastMonsterValue || card.value < currentWeapon.lastMonsterValue)) {
+            let btnWeapon = document.createElement("button");
+            btnWeapon.innerText = "Fight with Weapon";
+            btnWeapon.onclick = (e) => { e.stopPropagation(); clearAvoidFlag(); disableAvoidRoom(); playSound("weaponAttack"); fightWithWeapon(card, index); };
+            overlay.appendChild(btnWeapon);
+          }
+          let btnFist = document.createElement("button");
+          btnFist.innerText = "Fight Barehanded";
+          btnFist.onclick = (e) => { e.stopPropagation(); clearAvoidFlag(); disableAvoidRoom(); playSound("fistAttack"); fightBarehanded(card, index); };
+          overlay.appendChild(btnFist);
+        } else {
+          let btnTake = document.createElement("button");
+          if (card.type === "weapon") btnTake.innerText = "Equip";
+          else if (card.type === "potion") {
+            if (potionUsedThisTurn) btnTake.innerText = "Discard";
+            else btnTake.innerText = "Consume";
+          } else if (card.type === "active") btnTake.innerText = "Take";
+          btnTake.onclick = (e) => { e.stopPropagation(); clearAvoidFlag(); disableAvoidRoom(); playSound("take"); processTake(index); };
+          overlay.appendChild(btnTake);
+          if (card.type === "active" && card.subtype === "suspiciousPotion") {
+            let btnUseNow = document.createElement("button");
+            btnUseNow.innerText = "Use Immediately";
+            btnUseNow.onclick = (e) => { e.stopPropagation(); clearAvoidFlag(); disableAvoidRoom(); playSound("activeUse"); useSuspiciousPotionImmediateAtIndex(index); };
+            overlay.appendChild(btnUseNow);
+          }
+        }
+        container.appendChild(overlay);
+        roomDiv.appendChild(container);
+      });
+      
+      // Next Turn button removed.
+      if(lastTurnAvoided){
+        let avoidBtn = document.getElementById("avoidRoomBtn");
+        avoidBtn.disabled = true;
+        avoidBtn.style.opacity = 0.5;
+      }
+    }
+
+    function newTurn() {
+      turnInProgress = true;
+      // Reset potion usage at the start of each new turn
+      potionUsedThisTurn = false;
+      if(!lastTurnAvoided){
+        let avoidBtn = document.getElementById("avoidRoomBtn");
+        avoidBtn.disabled = false;
+        avoidBtn.style.opacity = 1;
+      }
+      while (room.length < options.cardsPerRoom) {
+        if (dungeon.length === 0) {
+          gameOver("Dungeon empty. Final Health: " + health);
+          return;
+        }
+        room.push(dungeon.shift());
+      }
+      updateUI();
+      showMessage("New turn. Pick " + (options.cardsPerRoom - 1) + " cards from the room. The leftover card carries over.");
+      playSound("newTurn");
+    }
+
+    function processTake(index) {
+      let card = room[index];
+      if (card.type === "weapon") {
+        equipWeapon(card);
+        showMessage("Equipped weapon with damage " + card.value + ".");
+        playSound("equip");
+      } else if (card.type === "potion") {
+        if (!potionUsedThisTurn) {
+          consumePotion(card);
+        } else {
+          showMessage("Already used a potion this turn. Discarding extra potion.");
+          playSound("error");
+          discardPile.push(card);
+        }
+      } else if (card.type === "active") {
+        if (activeCard) { discardPile.push(activeCard); }
+        activeCard = card;
+        let disp = (activeCard.subtype === "healingAce") ? "Warmonger" : activeCard.subtype;
+        showMessage("Picked up active card: " + disp + ".");
+        playSound("activeTake");
+      }
+      discardAndRemove(index);
+      updateUI();
+      checkTurnComplete();
+    }
+
+    function consumePotion(card) {
+      let healAmt = card.value;
+      let newHealth = Math.min(options.maxHealth, health + healAmt);
+      showMessage("Consumed potion for +" + (newHealth - health) + " health.");
+      playSound("potion");
+      health = newHealth;
+      potionUsedThisTurn = true;
+      discardPile.push(card);
+    }
+
+    // Suspicious Potion "Use Immediately" version for room (ace of hearts)
+    function useSuspiciousPotionImmediateAtIndex(index) {
+      let card = room[index];
+      useSuspiciousPotionImmediate(card);
+      discardAndRemove(index);
+      updateUI();
+      checkTurnComplete();
+    }
+
+    function useSuspiciousPotionImmediate(card) {
+      let oldHealth = health;
+      health = Math.floor(Math.random() * options.maxHealth) + 1;
+      showMessage("Suspicious Potion used immediately. Health set from " + oldHealth + " to " + health + ".");
+      playSound("potion");
+      discardPile.push(card);
+    }
+
+    function discardAndRemove(index) {
+      room.splice(index, 1);
+    }
+
+    function fightBarehanded(monsterCard, index) {
+      let result = applyDamage(monsterCard.value);
+      showMessage("Fought monster barehanded. " + result.details + "Damage taken: " + result.effectiveDamage + ".");
+      playSound("fistAttack");
+      discardPile.push(monsterCard);
+      discardAndRemove(index);
+      clearAvoidFlag();
+      updateUI();
+      checkTurnComplete();
+    }
+
+    function fightWithWeapon(monsterCard, index) {
+      let damage = monsterCard.value - currentWeapon.card.value;
+      if (damage < 0) damage = 0;
+      let result = applyDamage(damage);
+      currentWeapon.monsterStack.push(monsterCard);
+      if (currentWeapon.monsterStack.length > 0) {
+        currentWeapon.lastMonsterValue = currentWeapon.monsterStack[currentWeapon.monsterStack.length - 1].value;
+      } else {
+        currentWeapon.lastMonsterValue = null;
+      }
+      showMessage("Fought monster with weapon. " + result.details + "Damage taken: " + result.effectiveDamage + ".");
+      playSound("weaponAttack");
+      discardPile.push(monsterCard);
+      discardAndRemove(index);
+      clearAvoidFlag();
+      updateUI();
+      checkTurnComplete();
+    }
+
+    function applyDamage(dmg) {
+      let details = "";
+      if (activeCard && activeCard.subtype === "shield" && dmg > 0) {
+        let shieldVal = activeCard.activeValue;
+        let absorbed = Math.min(shieldVal, dmg);
+        let reduced = dmg - absorbed;
+        details = "Shield absorbed " + absorbed + " damage. ";
+        dmg = reduced;
+        discardPile.push(activeCard);
+        activeCard = null;
+        playSound("shield");
+        if (dmg > 0) {
+          playSound("damage");
+        }
+      } else {
+        if (dmg > 0) {
+          playSound("damage");
+        }
+      }
+      health -= dmg;
+      updateUI();
+      if (health <= 0) {
+        gameOver("You died. Final Health: 0");
+        playSound("death");
+      }
+      return { effectiveDamage: dmg, details: details };
+    }
+
+    function checkTurnComplete() {
+      if (room.length <= 1) {
+        turnInProgress = false;
+        roomsCleared++;
+        showMessage("Turn complete. Moving to next room...");
+        playSound("turnComplete");
+        setTimeout(() => {
+          let leftover = [];
+          if (room.length === 1) {
+            leftover = room.splice(0, 1);
+          }
+          room = leftover;
+          newTurn();
+        }, 1000);
+      }
+    }
+
+    function equipWeapon(card) {
+      if (currentWeapon) {
+        discardPile.push(currentWeapon.card);
+        currentWeapon.monsterStack.forEach(c => discardPile.push(c));
+      }
+      currentWeapon = { card: card, monsterStack: [], lastMonsterValue: null };
+      updateUI();
+    }
+
+    function useActiveCard() {
+      if (!activeCard) return;
+      if (activeCard.subtype === "blacksmith") {
+        useBlacksmith();
+      } else if (activeCard.subtype === "suspiciousPotion") {
+        useSuspiciousPotion();
+      } else if (activeCard.subtype === "healingAce") {
+        useWarmonger();
+      }
+    }
+
+    // Warmonger: always heals (red ace of diamonds renamed)
+    function useWarmonger() {
+      if (!activeCard || activeCard.subtype !== "healingAce") return;
+      if (!currentWeapon) {
+        showMessage("No weapon equipped. Warmonger does nothing.");
+        playSound("error");
+        return;
+      }
+      let weaponDamage = currentWeapon.card.value;
+      let lastMonster = currentWeapon.lastMonsterValue || 0;
+      let healAmt = Math.abs(weaponDamage - lastMonster);
+      let newHealth = Math.min(options.maxHealth, health + healAmt);
+      let actualHealed = newHealth - health;
+      health = newHealth;
+      showMessage("Warmonger healed you for +" + actualHealed + " health.");
+      playSound("healing");
+      discardPile.push(activeCard);
+      activeCard = null;
+      updateUI();
+    }
+
+    function useBlacksmith() {
+      if (!activeCard || activeCard.subtype !== "blacksmith") return;
+      if (!currentWeapon || currentWeapon.monsterStack.length === 0) {
+        showMessage("No monsters on weapon to remove.");
+        playSound("error");
+        return;
+      }
+      let n = activeCard.activeValue;
+      for (let i = 0; i < n; i++) {
+        currentWeapon.monsterStack.pop();
+      }
+      if (currentWeapon.monsterStack.length > 0) {
+        currentWeapon.lastMonsterValue = currentWeapon.monsterStack[currentWeapon.monsterStack.length - 1].value;
+      } else {
+        currentWeapon.lastMonsterValue = null;
+      }
+      showMessage("Blacksmith removed " + n + " monster(s) from your weapon.");
+      playSound("blacksmith");
+      discardPile.push(activeCard);
+      activeCard = null;
+      updateUI();
+    }
+
+    function useSuspiciousPotion() {
+      if (!activeCard || activeCard.subtype !== "suspiciousPotion") return;
+      let oldHealth = health;
+      health = Math.floor(Math.random() * options.maxHealth) + 1;
+      showMessage("Suspicious Potion used. Health set from " + oldHealth + " to " + health + ".");
+      playSound("potion");
+      discardPile.push(activeCard);
+      activeCard = null;
+      updateUI();
+    }
+
+    function avoidRoom() {
+      if (lastTurnAvoided) {
+        showMessage("Can't avoid two rooms in a row, dipshit.");
+        playSound("error");
+        return;
+      }
+      while (room.length < options.cardsPerRoom) {
+        if (dungeon.length === 0) {
+          gameOver("Dungeon empty. Final Health: " + health);
+          return;
+        }
+        room.push(dungeon.shift());
+      }
+      dungeon = dungeon.concat(room);
+      room = [];
+      avoidedLastTurn = true;
+      lastTurnAvoided = true;
+      turnInProgress = false;
+      updateUI();
+      showMessage("Room avoided. Cards sent to the bottom of the deck.");
+      playSound("avoid");
+      setTimeout(nextTurn, 1000);
+    }
+
+    function nextTurn() {
+      potionUsedThisTurn = false;
+      // NextTurn button is removed, so just call newTurn()
+      newTurn();
+    }
+
+    function gameOver(msg) {
+      showMessage("Game Over: " + msg);
+      turnInProgress = false;
+      document.getElementById("avoidRoomBtn").disabled = true;
+      let roomCards = document.querySelectorAll(".card-container");
+      roomCards.forEach(card => card.onclick = null);
+      document.getElementById("deathMessage").innerText = msg + " Rooms cleared: " + roomsCleared;
+      document.getElementById("deathModal").style.display = "block";
+    }
+
+    document.getElementById("restartBtn").addEventListener("click", () => {
+      document.getElementById("deathModal").style.display = "none";
+      document.getElementById("optionsModal").style.display = "flex";
+    });
+    document.getElementById("avoidRoomBtn").addEventListener("click", avoidRoom);
+
+    // Start game only after options are set (initGame() is called in startGameButton handler)
+  </script>
+</body>
+</html>
