@@ -359,15 +359,29 @@
     }
 
     // Play a sound effect; if missing, use "sfx/nosound.wav"
+    const audioCache = {};
+
     function playSound(soundName) {
-      let audio = new Audio("sfx/" + soundName + ".wav");
-      audio.volume = volume;
-      audio.onerror = function() {
-        let errAudio = new Audio("sfx/nosound.wav");
-        errAudio.volume = volume;
-        errAudio.play();
-      };
-      audio.play();
+      const src = "sfx/" + soundName + ".wav";
+      let audio = audioCache[soundName];
+      if (!audio) {
+        audio = new Audio(src);
+        audio.volume = volume;
+        // If the audio errors, try nosound.wav
+        audio.onerror = function() {
+          playSound("nosound");
+        };
+        audioCache[soundName] = audio;
+      } else {
+        // Reset if it's already playing
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = volume;
+      }
+      audio.play().catch(err => {
+        // Handle play() errors if necessary.
+        console.error("Audio play error:", err);
+      });
     }
 
     // Show message in modal and add to log
