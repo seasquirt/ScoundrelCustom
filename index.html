@@ -136,7 +136,7 @@
       margin: 0;
       text-align: left;
     }
-    /* Mobile: show avoid button in game header; hide desktop version */
+    /* Mobile: show avoid button in game header; hide desktop avoid button */
     #avoidRoomBtnHeader {
       display: none;
     }
@@ -215,7 +215,7 @@
     .card-container:hover .overlay {
       opacity: 1;
     }
-    /* On mobile, disable hover – will use tap to toggle */
+    /* On mobile, disable hover – overlay toggled via tap */
     @media (max-width: 600px) {
       .card-container:hover .overlay {
         opacity: 0;
@@ -354,7 +354,6 @@
       <div id="game">
         <div id="gameHeader">
           <h1>Scoundrel</h1>
-          <!-- Mobile avoid button -->
           <button id="avoidRoomBtnHeader" onclick="avoidRoom()">Avoid Room</button>
         </div>
         <div id="status">
@@ -382,8 +381,6 @@
         <div id="message"></div>
       </div>
     </div>
-    
-    <!-- For mobile, container stacks vertically (see media query) -->
     
     <!-- Message Modal -->
     <div id="messageModal"></div>
@@ -600,123 +597,122 @@
       showMessage("Game started. Brace yourself, you pathetic scum.");
       playSound("start");
       newTurn();
-      setupMobileCardTaps();
     }
     
     function updateUI() {
-  document.getElementById("healthDisplay").innerText = "Health: " + health;
-  document.getElementById("discardDisplay").innerText = "Discard Pile: " + discardPile.length;
-  document.getElementById("scoreDisplay").innerText = "Rooms Cleared: " + roomsCleared;
-  
-  let weaponArea = document.getElementById("weaponArea");
-  weaponArea.innerHTML = "";
-  if (currentWeapon) {
-    let wImg = document.createElement("img");
-    wImg.src = currentWeapon.card.image;
-    wImg.className = "card";
-    weaponArea.appendChild(wImg);
-    document.getElementById("weaponDisplay").innerText = "Weapon: " + currentWeapon.card.value;
-  } else {
-    document.getElementById("weaponDisplay").innerText = "Weapon: None";
-  }
-  
-  let weaponMonstersDiv = document.getElementById("weaponMonsters");
-  weaponMonstersDiv.innerHTML = "";
-  if (currentWeapon && currentWeapon.monsterStack.length > 0) {
-    currentWeapon.monsterStack.forEach(c => {
-      let mImg = document.createElement("img");
-      mImg.src = c.image;
-      mImg.className = "card";
-      weaponMonstersDiv.appendChild(mImg);
-    });
-  }
-  
-  let activeDiv = document.getElementById("activeArea");
-  activeDiv.innerHTML = "";
-  if (activeCard) {
-    let container = document.createElement("div");
-    container.className = "card-container";
-    let aImg = document.createElement("img");
-    aImg.src = activeCard.image;
-    aImg.className = "card";
-    container.appendChild(aImg);
-    // Always add overlay to active card
-    let overlay = document.createElement("div");
-    overlay.className = "overlay";
-    let btn = document.createElement("button");
-    btn.innerText = "Use";
-    btn.onclick = (e) => { e.stopPropagation(); disableAvoidRoom(); playSound("activeUse"); useActiveCard(); };
-    overlay.appendChild(btn);
-    container.appendChild(overlay);
-    activeDiv.appendChild(container);
-    let dispName = (activeCard.subtype === "healingAce") ? "Warmonger" : activeCard.subtype;
-    document.getElementById("activeDisplay").innerText = "Active Card: " + dispName;
-  } else {
-    document.getElementById("activeDisplay").innerText = "Active Card: None";
-  }
-  
-  let roomDiv = document.getElementById("roomCards");
-  roomDiv.innerHTML = "";
-  room.forEach((card, index) => {
-    let container = document.createElement("div");
-    container.className = "card-container";
-    let img = document.createElement("img");
-    img.src = card.image;
-    img.className = "card";
-    container.appendChild(img);
-    
-    // Only add the overlay if there is more than one card in the room.
-    if (room.length > 1) {
-      let overlay = document.createElement("div");
-      overlay.className = "overlay";
-      if (card.type === "monster") {
-        if (currentWeapon && (!currentWeapon.lastMonsterValue || card.value < currentWeapon.lastMonsterValue)) {
-          let btnWeapon = document.createElement("button");
-          btnWeapon.innerText = "Fight with Weapon";
-          btnWeapon.onclick = (e) => { e.stopPropagation(); clearAvoidFlag(); disableAvoidRoom(); playSound("weaponAttack"); fightWithWeapon(card, index); };
-          overlay.appendChild(btnWeapon);
-        }
-        let btnFist = document.createElement("button");
-        btnFist.innerText = "Fight Barehanded";
-        btnFist.onclick = (e) => { e.stopPropagation(); clearAvoidFlag(); disableAvoidRoom(); playSound("fistAttack"); fightBarehanded(card, index); };
-        overlay.appendChild(btnFist);
+      document.getElementById("healthDisplay").innerText = "Health: " + health;
+      document.getElementById("discardDisplay").innerText = "Discard Pile: " + discardPile.length;
+      document.getElementById("scoreDisplay").innerText = "Rooms Cleared: " + roomsCleared;
+      
+      let weaponArea = document.getElementById("weaponArea");
+      weaponArea.innerHTML = "";
+      if (currentWeapon) {
+        let wImg = document.createElement("img");
+        wImg.src = currentWeapon.card.image;
+        wImg.className = "card";
+        weaponArea.appendChild(wImg);
+        document.getElementById("weaponDisplay").innerText = "Weapon: " + currentWeapon.card.value;
       } else {
-        let btnTake = document.createElement("button");
-        if (card.type === "weapon") btnTake.innerText = "Equip";
-        else if (card.type === "potion") {
-          btnTake.innerText = potionUsedThisTurn ? "Discard" : "Consume";
-        } else if (card.type === "active") btnTake.innerText = "Take";
-        btnTake.onclick = (e) => { e.stopPropagation(); clearAvoidFlag(); disableAvoidRoom(); playSound("take"); processTake(index); };
-        overlay.appendChild(btnTake);
-        if (card.type === "active" && card.subtype === "suspiciousPotion") {
-          let btnUseNow = document.createElement("button");
-          btnUseNow.innerText = "Use Immediately";
-          btnUseNow.onclick = (e) => { e.stopPropagation(); clearAvoidFlag(); disableAvoidRoom(); playSound("activeUse"); useSuspiciousPotionImmediateAtIndex(index); };
-          overlay.appendChild(btnUseNow);
+        document.getElementById("weaponDisplay").innerText = "Weapon: None";
+      }
+      
+      let weaponMonstersDiv = document.getElementById("weaponMonsters");
+      weaponMonstersDiv.innerHTML = "";
+      if (currentWeapon && currentWeapon.monsterStack.length > 0) {
+        currentWeapon.monsterStack.forEach(c => {
+          let mImg = document.createElement("img");
+          mImg.src = c.image;
+          mImg.className = "card";
+          weaponMonstersDiv.appendChild(mImg);
+        });
+      }
+      
+      let activeDiv = document.getElementById("activeArea");
+      activeDiv.innerHTML = "";
+      if (activeCard) {
+        let container = document.createElement("div");
+        container.className = "card-container";
+        let aImg = document.createElement("img");
+        aImg.src = activeCard.image;
+        aImg.className = "card";
+        container.appendChild(aImg);
+        // Only add overlay if active card is NOT a shield
+        if (activeCard.subtype !== "shield") {
+          let overlay = document.createElement("div");
+          overlay.className = "overlay";
+          let btn = document.createElement("button");
+          btn.innerText = "Use";
+          btn.onclick = (e) => { e.stopPropagation(); disableAvoidRoom(); playSound("activeUse"); useActiveCard(); };
+          overlay.appendChild(btn);
+          container.appendChild(overlay);
+        }
+        activeDiv.appendChild(container);
+        let dispName = (activeCard.subtype === "healingAce") ? "Warmonger" : activeCard.subtype;
+        document.getElementById("activeDisplay").innerText = "Active Card: " + dispName;
+      } else {
+        document.getElementById("activeDisplay").innerText = "Active Card: None";
+      }
+      
+      let roomDiv = document.getElementById("roomCards");
+      roomDiv.innerHTML = "";
+      room.forEach((card, index) => {
+        let container = document.createElement("div");
+        container.className = "card-container";
+        let img = document.createElement("img");
+        img.src = card.image;
+        img.className = "card";
+        container.appendChild(img);
+        // Only add overlay if more than one card in room
+        if (room.length > 1) {
+          let overlay = document.createElement("div");
+          overlay.className = "overlay";
+          if (card.type === "monster") {
+            if (currentWeapon && (!currentWeapon.lastMonsterValue || card.value < currentWeapon.lastMonsterValue)) {
+              let btnWeapon = document.createElement("button");
+              btnWeapon.innerText = "Fight with Weapon";
+              btnWeapon.onclick = (e) => { e.stopPropagation(); clearAvoidFlag(); disableAvoidRoom(); playSound("weaponAttack"); fightWithWeapon(card, index); };
+              overlay.appendChild(btnWeapon);
+            }
+            let btnFist = document.createElement("button");
+            btnFist.innerText = "Fight Barehanded";
+            btnFist.onclick = (e) => { e.stopPropagation(); clearAvoidFlag(); disableAvoidRoom(); playSound("fistAttack"); fightBarehanded(card, index); };
+            overlay.appendChild(btnFist);
+          } else {
+            let btnTake = document.createElement("button");
+            if (card.type === "weapon") btnTake.innerText = "Equip";
+            else if (card.type === "potion") {
+              btnTake.innerText = potionUsedThisTurn ? "Discard" : "Consume";
+            } else if (card.type === "active") btnTake.innerText = "Take";
+            btnTake.onclick = (e) => { e.stopPropagation(); clearAvoidFlag(); disableAvoidRoom(); playSound("take"); processTake(index); };
+            overlay.appendChild(btnTake);
+            if (card.type === "active" && card.subtype === "suspiciousPotion") {
+              let btnUseNow = document.createElement("button");
+              btnUseNow.innerText = "Use Immediately";
+              btnUseNow.onclick = (e) => { e.stopPropagation(); clearAvoidFlag(); disableAvoidRoom(); playSound("activeUse"); useSuspiciousPotionImmediateAtIndex(index); };
+              overlay.appendChild(btnUseNow);
+            }
+          }
+          container.appendChild(overlay);
+        }
+        roomDiv.appendChild(container);
+      });
+      
+      if (lastTurnAvoided) {
+        let avoidBtn = document.getElementById("avoidRoomBtn");
+        avoidBtn.disabled = true;
+        avoidBtn.style.opacity = 0.5;
+        let avoidHeader = document.getElementById("avoidRoomBtnHeader");
+        if (avoidHeader) {
+          avoidHeader.disabled = true;
+          avoidHeader.style.opacity = 0.5;
         }
       }
-      container.appendChild(overlay);
     }
-    
-    roomDiv.appendChild(container);
-  });
-  
-  if (lastTurnAvoided) {
-    let avoidBtn = document.getElementById("avoidRoomBtn");
-    avoidBtn.disabled = true;
-    avoidBtn.style.opacity = 0.5;
-    let avoidHeader = document.getElementById("avoidRoomBtnHeader");
-    if (avoidHeader) {
-      avoidHeader.disabled = true;
-      avoidHeader.style.opacity = 0.5;
-    }
-  }
-}
     
     function newTurn() {
       turnInProgress = true;
       potionUsedThisTurn = false;
-      if(!lastTurnAvoided){
+      if (!lastTurnAvoided) {
         let avoidBtn = document.getElementById("avoidRoomBtn");
         avoidBtn.disabled = false;
         avoidBtn.style.opacity = 1;
@@ -889,7 +885,6 @@
       }
     }
     
-    // Warmonger: always heals
     function useWarmonger() {
       if (!activeCard || activeCard.subtype !== "healingAce") return;
       if (!currentWeapon) {
@@ -946,8 +941,6 @@
     
     function avoidRoom() {
       if (lastTurnAvoided) {
-        showMessage("Can't avoid two rooms in a row, dipshit.");
-        playSound("error");
         return;
       }
       while (room.length < options.cardsPerRoom) {
@@ -989,47 +982,38 @@
     });
     document.getElementById("avoidRoomBtn").addEventListener("click", avoidRoom);
     
-    // Mobile: Use event delegation for toggling card overlays
-    function setupMobileCardTaps() {
+    // Permanent mobile tap delegation: Attach to document to toggle overlays for any card-container in #roomCards or #activeArea
+    document.addEventListener("click", function(e) {
       if (window.innerWidth <= 600) {
-        const roomCardsContainer = document.getElementById("roomCards");
-        roomCardsContainer.addEventListener("click", function(e) {
-          let container = e.target.closest(".card-container");
-          if (container) {
-            const overlay = container.querySelector(".overlay");
-            if (overlay) {
-              if (overlay.classList.contains("show")) {
-                overlay.classList.remove("show");
-                overlay.style.opacity = 0;
-                overlay.style.pointerEvents = "none";
-              } else {
-                // Hide other overlays
-                document.querySelectorAll(".card-container .overlay.show").forEach(o => {
-                  o.classList.remove("show");
-                  o.style.opacity = 0;
-                  o.style.pointerEvents = "none";
-                });
-                overlay.classList.add("show");
-                overlay.style.opacity = 1;
-                overlay.style.pointerEvents = "auto";
-              }
+        let container = e.target.closest(".card-container");
+        // Only act if container is inside #roomCards or #activeArea
+        if (container && (container.parentElement.id === "roomCards" || container.parentElement.id === "activeArea")) {
+          let overlay = container.querySelector(".overlay");
+          if (overlay) {
+            if (overlay.classList.contains("show")) {
+              overlay.classList.remove("show");
+              overlay.style.opacity = 0;
+              overlay.style.pointerEvents = "none";
+            } else {
+              // Hide other overlays
+              document.querySelectorAll(".card-container .overlay.show").forEach(o => {
+                o.classList.remove("show");
+                o.style.opacity = 0;
+                o.style.pointerEvents = "none";
+              });
+              overlay.classList.add("show");
+              overlay.style.opacity = 1;
+              overlay.style.pointerEvents = "auto";
             }
             e.stopPropagation();
           }
-        });
-        document.body.addEventListener("click", function(e) {
-          if (!e.target.closest(".card-container")) {
-            document.querySelectorAll(".card-container .overlay.show").forEach(o => {
-              o.classList.remove("show");
-              o.style.opacity = 0;
-              o.style.pointerEvents = "none";
-            });
-          }
-        });
+        }
       }
-    }
+    });
     
-    window.addEventListener("resize", setupMobileCardTaps);
+    window.addEventListener("resize", function() {
+      // Nothing to do on resize since our delegation is permanent.
+    });
     
     // Start game after options are set.
   </script>
